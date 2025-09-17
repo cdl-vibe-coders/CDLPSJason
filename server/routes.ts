@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { initializeModules, DynamicModuleRegistry } from "./registry/DynamicModuleRegistry";
 import type { DeploymentMode } from "./types/module";
+import { registerNavigationRoutes } from "./routes/navigation";
 
 export async function registerRoutes(app: Express, deploymentMode: DeploymentMode = 'monolith'): Promise<{server: Server, registry: DynamicModuleRegistry}> {
   console.log(`\n🚀 Starting Express.js Modular Backend Architecture in ${deploymentMode} mode...`);
@@ -29,6 +30,10 @@ export async function registerRoutes(app: Express, deploymentMode: DeploymentMod
     registry = await initializeModules(app, deploymentMode);
     
     console.log("✅ All modules loaded successfully");
+    
+    // Register navigation routes
+    registerNavigationRoutes(app);
+    console.log("🗺️ Navigation routes registered");
     
     // Log registered routes summary
     const enabledModules = registry.getEnabledModules();
