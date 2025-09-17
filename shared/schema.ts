@@ -95,6 +95,95 @@ export const users_profiles = pgTable("users_profiles", {
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
 });
 
+// ============= CODE REVIEW MODULE SCHEMA =============
+// ISOLATED: Only codereview_* tables with no cross-module foreign keys
+
+export const codereview_projects = pgTable("codereview_projects", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  repository: text("repository"),
+  branch: varchar("branch", { length: 100 }).default("main"),
+  language: varchar("language", { length: 50 }),
+  userId: varchar("user_id").notNull(), // Opaque reference - no FK constraint
+  isActive: boolean("is_active").notNull().default(true),
+  autoReviewEnabled: boolean("auto_review_enabled").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+export const codereview_reviews = pgTable("codereview_reviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").references(() => codereview_projects.id, { onDelete: "cascade" }).notNull(),
+  userId: varchar("user_id").notNull(), // Opaque reference - no FK constraint
+  title: text("title").notNull(),
+  description: text("description"),
+  codeSnippet: text("code_snippet").notNull(),
+  language: varchar("language", { length: 50 }),
+  filePath: text("file_path"),
+  lineStart: varchar("line_start", { length: 10 }),
+  lineEnd: varchar("line_end", { length: 10 }),
+  reviewType: varchar("review_type", { length: 50 }).notNull().default("manual"), // manual, automated, scheduled
+  status: varchar("status", { length: 50 }).notNull().default("pending"), // pending, reviewing, completed, failed
+  aiModel: varchar("ai_model", { length: 100 }).default("claude-sonnet-4-20250514"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  completedAt: timestamp("completed_at"),
+});
+
+export const codereview_results = pgTable("codereview_results", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  reviewId: varchar("review_id").references(() => codereview_reviews.id, { onDelete: "cascade" }).notNull().unique(),
+  overallScore: varchar("overall_score", { length: 10 }),
+  summary: text("summary"),
+  issues: jsonb("issues").notNull().default('[]'), // Array of issues found
+  suggestions: jsonb("suggestions").notNull().default('[]'), // Array of improvement suggestions
+  securityVulnerabilities: jsonb("security_vulnerabilities").notNull().default('[]'),
+  performanceIssues: jsonb("performance_issues").notNull().default('[]'),
+  bestPractices: jsonb("best_practices").notNull().default('[]'),
+  codeComplexity: jsonb("code_complexity"),
+  testCoverage: jsonb("test_coverage"),
+  documentation: jsonb("documentation"),
+  rawResponse: text("raw_response"), // Full AI response for debugging
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+export const codereview_comments = pgTable("codereview_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  reviewId: varchar("review_id").references(() => codereview_reviews.id, { onDelete: "cascade" }).notNull(),
+  userId: varchar("user_id").notNull(), // Opaque reference - no FK constraint
+  comment: text("comment").notNull(),
+  isAiGenerated: boolean("is_ai_generated").notNull().default(false),
+  resolved: boolean("resolved").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+export const codereview_templates = pgTable("codereview_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  userId: varchar("user_id").notNull(), // Opaque reference - no FK constraint
+  isPublic: boolean("is_public").notNull().default(false),
+  reviewCriteria: jsonb("review_criteria").notNull().default('{}'),
+  systemPrompt: text("system_prompt"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+export const codereview_metrics = pgTable("codereview_metrics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").references(() => codereview_projects.id, { onDelete: "cascade" }).notNull(),
+  date: timestamp("date").notNull().default(sql`now()`),
+  totalReviews: varchar("total_reviews", { length: 10 }).notNull().default("0"),
+  avgScore: varchar("avg_score", { length: 10 }),
+  issuesFound: varchar("issues_found", { length: 10 }).notNull().default("0"),
+  issuesResolved: varchar("issues_resolved", { length: 10 }).notNull().default("0"),
+  securityVulnerabilities: varchar("security_vulnerabilities", { length: 10 }).notNull().default("0"),
+  performanceIssues: varchar("performance_issues", { length: 10 }).notNull().default("0"),
+  codeQualityTrend: jsonb("code_quality_trend").notNull().default('{}'),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
 // ============= ADMIN MODULE ACCESS CONTROL TABLES =============
 // These are owned by admin module and use opaque references to users
 
@@ -276,6 +365,60 @@ export type InsertAdminLog = z.infer<typeof insertAdminLogSchema>;
 // User Module Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+// Code Review Module Schemas
+export const insertCodereviewProjectSchema = createInsertSchema(codereview_projects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCodereviewReviewSchema = createInsertSchema(codereview_reviews).omit({
+  id: true,
+  createdAt: true,
+  completedAt: true,
+});
+
+export const insertCodereviewResultSchema = createInsertSchema(codereview_results).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCodereviewCommentSchema = createInsertSchema(codereview_comments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCodereviewTemplateSchema = createInsertSchema(codereview_templates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCodereviewMetricSchema = createInsertSchema(codereview_metrics).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Code Review Module Types
+export type CodereviewProject = typeof codereview_projects.$inferSelect;
+export type InsertCodereviewProject = z.infer<typeof insertCodereviewProjectSchema>;
+
+export type CodereviewReview = typeof codereview_reviews.$inferSelect;
+export type InsertCodereviewReview = z.infer<typeof insertCodereviewReviewSchema>;
+
+export type CodereviewResult = typeof codereview_results.$inferSelect;
+export type InsertCodereviewResult = z.infer<typeof insertCodereviewResultSchema>;
+
+export type CodereviewComment = typeof codereview_comments.$inferSelect;
+export type InsertCodereviewComment = z.infer<typeof insertCodereviewCommentSchema>;
+
+export type CodereviewTemplate = typeof codereview_templates.$inferSelect;
+export type InsertCodereviewTemplate = z.infer<typeof insertCodereviewTemplateSchema>;
+
+export type CodereviewMetric = typeof codereview_metrics.$inferSelect;
+export type InsertCodereviewMetric = z.infer<typeof insertCodereviewMetricSchema>;
 
 // Admin Module Access Control Types
 export type AdminModulePermission = typeof admin_module_permissions.$inferSelect;
