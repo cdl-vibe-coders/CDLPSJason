@@ -1,0 +1,9 @@
+{
+  "dev:monolith": "NODE_ENV=development tsx server/index.ts",
+  "dev:admin": "NODE_ENV=development tsx server/standalone/admin.ts 3001", 
+  "dev:users": "NODE_ENV=development tsx server/standalone/users.ts 3002",
+  "build:admin": "tsx --build server/standalone/admin.ts",
+  "build:users": "tsx --build server/standalone/users.ts",
+  "start:admin": "node dist/server/standalone/admin.js",
+  "start:users": "node dist/server/standalone/users.js"
+}

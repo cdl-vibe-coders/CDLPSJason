@@ -5,6 +5,8 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // ============= ADMIN MODULE SCHEMA =============
+// ISOLATED: Only admin_* tables with no cross-module foreign keys
+
 export const admin_modules = pgTable("admin_modules", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name", { length: 100 }).notNull().unique(),
@@ -33,13 +35,15 @@ export const admin_settings = pgTable("admin_settings", {
 export const admin_logs = pgTable("admin_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   moduleId: varchar("module_id").references(() => admin_modules.id, { onDelete: "set null" }),
-  userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }),
+  userId: varchar("user_id").notNull(), // Opaque reference - no FK constraint
   action: varchar("action", { length: 100 }).notNull(),
   details: jsonb("details"),
   timestamp: timestamp("timestamp").notNull().default(sql`now()`),
 });
 
 // ============= USERS MODULE SCHEMA =============
+// ISOLATED: Only users_* tables (including main users table) with no cross-module foreign keys
+
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
@@ -51,7 +55,7 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
 });
 
-export const user_sessions = pgTable("user_sessions", {
+export const users_sessions = pgTable("users_sessions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
   token: text("token").notNull().unique(),
@@ -59,7 +63,7 @@ export const user_sessions = pgTable("user_sessions", {
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
 
-export const user_preferences = pgTable("user_preferences", {
+export const users_preferences = pgTable("users_preferences", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull().unique(),
   theme: varchar("theme", { length: 20 }).notNull().default("dark"),
@@ -69,8 +73,32 @@ export const user_preferences = pgTable("user_preferences", {
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
 });
 
-// ============= ROLE-BASED ACCESS CONTROL SCHEMA =============
-export const module_role_permissions = pgTable("module_role_permissions", {
+export const users_activity = pgTable("users_activity", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  action: varchar("action", { length: 100 }).notNull(),
+  details: jsonb("details"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  timestamp: timestamp("timestamp").notNull().default(sql`now()`),
+});
+
+export const users_profiles = pgTable("users_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull().unique(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  avatar: text("avatar"),
+  bio: text("bio"),
+  timezone: varchar("timezone", { length: 50 }).default("UTC"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+// ============= ADMIN MODULE ACCESS CONTROL TABLES =============
+// These are owned by admin module and use opaque references to users
+
+export const admin_module_permissions = pgTable("admin_module_permissions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   moduleId: varchar("module_id").references(() => admin_modules.id, { onDelete: "cascade" }).notNull(),
   role: varchar("role", { length: 50 }).notNull(),
@@ -79,29 +107,32 @@ export const module_role_permissions = pgTable("module_role_permissions", {
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
 }, (table) => {
   return {
-    moduleRoleUnique: unique("module_role_permissions_module_role_unique").on(table.moduleId, table.role),
+    moduleRoleUnique: unique("admin_module_permissions_module_role_unique").on(table.moduleId, table.role),
   };
 });
 
-export const user_module_overrides = pgTable("user_module_overrides", {
+export const admin_user_overrides = pgTable("admin_user_overrides", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  userId: varchar("user_id").notNull(), // Opaque reference - no FK constraint
   moduleId: varchar("module_id").references(() => admin_modules.id, { onDelete: "cascade" }).notNull(),
   enabled: boolean("enabled").notNull(),
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
 }, (table) => {
   return {
-    userModuleUnique: unique("user_module_overrides_user_module_unique").on(table.userId, table.moduleId),
+    userModuleUnique: unique("admin_user_overrides_user_module_unique").on(table.userId, table.moduleId),
   };
 });
 
 // ============= RELATIONS =============
+// ISOLATED: Only intra-module relations, no cross-module relations
+
+// Admin Module Relations (admin_* tables only)
 export const adminModulesRelations = relations(admin_modules, ({ many }) => ({
   settings: many(admin_settings),
   logs: many(admin_logs),
-  rolePermissions: many(module_role_permissions),
-  userOverrides: many(user_module_overrides),
+  permissions: many(admin_module_permissions),
+  userOverrides: many(admin_user_overrides),
 }));
 
 export const adminSettingsRelations = relations(admin_settings, ({ one }) => ({
@@ -116,48 +147,57 @@ export const adminLogsRelations = relations(admin_logs, ({ one }) => ({
     fields: [admin_logs.moduleId],
     references: [admin_modules.id],
   }),
-  user: one(users, {
-    fields: [admin_logs.userId],
-    references: [users.id],
-  }),
+  // Note: No relation to users - userId is opaque reference
 }));
 
-export const usersRelations = relations(users, ({ many }) => ({
-  sessions: many(user_sessions),
-  preferences: many(user_preferences),
-  logs: many(admin_logs),
-  moduleOverrides: many(user_module_overrides),
-}));
-
-export const userSessionsRelations = relations(user_sessions, ({ one }) => ({
-  user: one(users, {
-    fields: [user_sessions.userId],
-    references: [users.id],
-  }),
-}));
-
-export const userPreferencesRelations = relations(user_preferences, ({ one }) => ({
-  user: one(users, {
-    fields: [user_preferences.userId],
-    references: [users.id],
-  }),
-}));
-
-export const moduleRolePermissionsRelations = relations(module_role_permissions, ({ one }) => ({
+export const adminModulePermissionsRelations = relations(admin_module_permissions, ({ one }) => ({
   module: one(admin_modules, {
-    fields: [module_role_permissions.moduleId],
+    fields: [admin_module_permissions.moduleId],
     references: [admin_modules.id],
   }),
 }));
 
-export const userModuleOverridesRelations = relations(user_module_overrides, ({ one }) => ({
+export const adminUserOverridesRelations = relations(admin_user_overrides, ({ one }) => ({
+  module: one(admin_modules, {
+    fields: [admin_user_overrides.moduleId],
+    references: [admin_modules.id],
+  }),
+  // Note: No relation to users - userId is opaque reference
+}));
+
+// Users Module Relations (users_* tables only)
+export const usersRelations = relations(users, ({ many, one }) => ({
+  sessions: many(users_sessions),
+  preferences: one(users_preferences),
+  activities: many(users_activity),
+  profile: one(users_profiles),
+}));
+
+export const usersSessionsRelations = relations(users_sessions, ({ one }) => ({
   user: one(users, {
-    fields: [user_module_overrides.userId],
+    fields: [users_sessions.userId],
     references: [users.id],
   }),
-  module: one(admin_modules, {
-    fields: [user_module_overrides.moduleId],
-    references: [admin_modules.id],
+}));
+
+export const usersPreferencesRelations = relations(users_preferences, ({ one }) => ({
+  user: one(users, {
+    fields: [users_preferences.userId],
+    references: [users.id],
+  }),
+}));
+
+export const usersActivityRelations = relations(users_activity, ({ one }) => ({
+  user: one(users, {
+    fields: [users_activity.userId],
+    references: [users.id],
+  }),
+}));
+
+export const usersProfilesRelations = relations(users_profiles, ({ one }) => ({
+  user: one(users, {
+    fields: [users_profiles.userId],
+    references: [users.id],
   }),
 }));
 
@@ -180,6 +220,19 @@ export const insertAdminLogSchema = createInsertSchema(admin_logs).omit({
   timestamp: true,
 });
 
+// Admin Module Permission Schemas
+export const insertAdminModulePermissionSchema = createInsertSchema(admin_module_permissions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAdminUserOverrideSchema = createInsertSchema(admin_user_overrides).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // User Module Schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -187,28 +240,27 @@ export const insertUserSchema = createInsertSchema(users).omit({
   updatedAt: true,
 });
 
-export const insertUserSessionSchema = createInsertSchema(user_sessions).omit({
+export const insertUserSessionSchema = createInsertSchema(users_sessions).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertUserPreferencesSchema = createInsertSchema(user_preferences).omit({
+export const insertUserPreferencesSchema = createInsertSchema(users_preferences).omit({
   id: true,
   updatedAt: true,
 });
 
-// Role-based Access Control Schemas
-export const insertModuleRolePermissionSchema = createInsertSchema(module_role_permissions).omit({
+export const insertUserActivitySchema = createInsertSchema(users_activity).omit({
+  id: true,
+  timestamp: true,
+});
+
+export const insertUserProfileSchema = createInsertSchema(users_profiles).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
 
-export const insertUserModuleOverrideSchema = createInsertSchema(user_module_overrides).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
 
 // ============= TYPES =============
 // Admin Module Types
@@ -225,18 +277,25 @@ export type InsertAdminLog = z.infer<typeof insertAdminLogSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 
-export type UserSession = typeof user_sessions.$inferSelect;
+// Admin Module Access Control Types
+export type AdminModulePermission = typeof admin_module_permissions.$inferSelect;
+export type InsertAdminModulePermission = z.infer<typeof insertAdminModulePermissionSchema>;
+
+export type AdminUserOverride = typeof admin_user_overrides.$inferSelect;
+export type InsertAdminUserOverride = z.infer<typeof insertAdminUserOverrideSchema>;
+
+// Additional Users Module Types
+export type UserSession = typeof users_sessions.$inferSelect;
 export type InsertUserSession = z.infer<typeof insertUserSessionSchema>;
 
-export type UserPreferences = typeof user_preferences.$inferSelect;
+export type UserPreferences = typeof users_preferences.$inferSelect;
 export type InsertUserPreferences = z.infer<typeof insertUserPreferencesSchema>;
 
-// Role-based Access Control Types
-export type ModuleRolePermission = typeof module_role_permissions.$inferSelect;
-export type InsertModuleRolePermission = z.infer<typeof insertModuleRolePermissionSchema>;
+export type UserActivity = typeof users_activity.$inferSelect;
+export type InsertUserActivity = z.infer<typeof insertUserActivitySchema>;
 
-export type UserModuleOverride = typeof user_module_overrides.$inferSelect;
-export type InsertUserModuleOverride = z.infer<typeof insertUserModuleOverrideSchema>;
+export type UserProfile = typeof users_profiles.$inferSelect;
+export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
 
 // Security helper types
 export type UserWithoutPassword = Omit<User, 'password'>;

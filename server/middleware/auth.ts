@@ -39,10 +39,10 @@ export function generateSessionToken(): string {
   return randomBytes(32).toString('hex');
 }
 
-// Calculate session expiration (30 days from now)
-export function getSessionExpiration(): Date {
+// Calculate session expiration (30 days from now, or custom days)
+export function getSessionExpiration(days: number = 30): Date {
   const expiration = new Date();
-  expiration.setDate(expiration.getDate() + 30);
+  expiration.setDate(expiration.getDate() + days);
   return expiration;
 }
 

@@ -1,15 +1,14 @@
 import { 
-  users, admin_modules, admin_settings, admin_logs, user_sessions, user_preferences,
-  module_role_permissions, user_module_overrides,
+  users, admin_modules, admin_settings, admin_logs, users_sessions, users_preferences,
+  admin_module_permissions, admin_user_overrides,
   type User, type InsertUser, type UserWithoutPassword,
   type AdminModule, type InsertAdminModule,
   type AdminSetting, type InsertAdminSetting,
   type AdminLog, type InsertAdminLog,
-  type UserSession, type InsertUserSession,
-  type UserPreferences, type InsertUserPreferences,
-  type ModuleRolePermission, type InsertModuleRolePermission,
-  type UserModuleOverride, type InsertUserModuleOverride,
-  type ModuleAccessResult
+  type UsersSession, type InsertUsersSession,
+  type UsersPreferences, type InsertUsersPreferences,
+  type AdminModulePermission, type InsertAdminModulePermission,
+  type AdminUserOverride, type InsertAdminUserOverride
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
