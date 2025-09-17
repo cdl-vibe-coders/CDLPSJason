@@ -6,7 +6,7 @@ import { requireAuth } from "../../middleware/auth";
 
 // ============= CODE REVIEW MODULE MANIFEST =============
 
-export const codeReviewManifest: ModuleManifest = {
+export const codereviewManifest: ModuleManifest = {
   id: "codereview",
   name: "codereview",
   displayName: "Code Review",
@@ -47,7 +47,7 @@ export const codeReviewManifest: ModuleManifest = {
 
 // ============= CODE REVIEW MODULE BOOTSTRAP =============
 
-export async function bootstrapCodeReviewModule(): Promise<ModuleBootstrapResult> {
+export async function bootstrapCodereviewModule(): Promise<ModuleBootstrapResult> {
   console.log("🔍 Bootstrapping Code Review Module...");
 
   // Check for required environment variables
@@ -448,7 +448,7 @@ export async function bootstrapCodeReviewModule(): Promise<ModuleBootstrapResult
   return {
     router,
     lifecycle,
-    manifest: codeReviewManifest,
+    manifest: codereviewManifest,
     storage
   };
 }

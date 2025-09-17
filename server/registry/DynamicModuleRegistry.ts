@@ -44,6 +44,10 @@ export class DynamicModuleRegistry {
       {
         id: 'users', 
         bootstrapPath: '../modules/users/bootstrap'
+      },
+      {
+        id: 'codereview',
+        bootstrapPath: '../modules/codereview/bootstrap'
       }
     ];
 
