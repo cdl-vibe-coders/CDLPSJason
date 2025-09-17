@@ -402,20 +402,20 @@ export class DatabaseStorage implements IStorage {
   async getUserModuleOverrides(userId: string): Promise<UserModuleOverride[]> {
     return await db
       .select()
-      .from(user_module_overrides)
-      .where(eq(user_module_overrides.userId, userId));
+      .from(admin_user_overrides)
+      .where(eq(admin_user_overrides.userId, userId));
   }
   
   async getModuleOverrides(moduleId: string): Promise<UserModuleOverride[]> {
     return await db
       .select()
-      .from(user_module_overrides)
-      .where(eq(user_module_overrides.moduleId, moduleId));
+      .from(admin_user_overrides)
+      .where(eq(admin_user_overrides.moduleId, moduleId));
   }
   
   async createUserModuleOverride(insertOverride: InsertUserModuleOverride): Promise<UserModuleOverride> {
     const [override] = await db
-      .insert(user_module_overrides)
+      .insert(admin_user_overrides)
       .values({
         ...insertOverride,
         createdAt: new Date(),
@@ -427,11 +427,11 @@ export class DatabaseStorage implements IStorage {
   
   async updateUserModuleOverride(userId: string, moduleId: string, enabled: boolean): Promise<UserModuleOverride | undefined> {
     const [override] = await db
-      .update(user_module_overrides)
+      .update(admin_user_overrides)
       .set({ enabled, updatedAt: new Date() })
       .where(and(
-        eq(user_module_overrides.userId, userId),
-        eq(user_module_overrides.moduleId, moduleId)
+        eq(admin_user_overrides.userId, userId),
+        eq(admin_user_overrides.moduleId, moduleId)
       ))
       .returning();
     return override || undefined;
@@ -439,10 +439,10 @@ export class DatabaseStorage implements IStorage {
   
   async deleteUserModuleOverride(userId: string, moduleId: string): Promise<boolean> {
     const [deleted] = await db
-      .delete(user_module_overrides)
+      .delete(admin_user_overrides)
       .where(and(
-        eq(user_module_overrides.userId, userId),
-        eq(user_module_overrides.moduleId, moduleId)
+        eq(admin_user_overrides.userId, userId),
+        eq(admin_user_overrides.moduleId, moduleId)
       ))
       .returning();
     return !!deleted;
@@ -459,10 +459,10 @@ export class DatabaseStorage implements IStorage {
     // Check for user-specific override first (highest precedence)
     const [userOverride] = await db
       .select()
-      .from(user_module_overrides)
+      .from(admin_user_overrides)
       .where(and(
-        eq(user_module_overrides.userId, userId),
-        eq(user_module_overrides.moduleId, moduleId)
+        eq(admin_user_overrides.userId, userId),
+        eq(admin_user_overrides.moduleId, moduleId)
       ));
       
     if (userOverride) {
