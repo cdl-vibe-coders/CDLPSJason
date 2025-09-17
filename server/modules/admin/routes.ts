@@ -334,6 +334,19 @@ export function registerAdminRoutes(app: Express) {
 
   // ============= LOGGING =============
   
+  // Get all system logs with optional filtering
+  app.get("/api/admin/logs", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const filters = req.query;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
+      const logs = await adminController.getAllLogs(filters, limit);
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching system logs:", error);
+      res.status(500).json({ error: "Failed to fetch system logs" });
+    }
+  });
+  
   // Get module logs
   app.get("/api/admin/modules/:moduleId/logs", requireAdmin, async (req: Request, res: Response) => {
     try {
@@ -357,6 +370,19 @@ export function registerAdminRoutes(app: Express) {
     } catch (error) {
       console.error("Error fetching user logs:", error);
       res.status(500).json({ error: "Failed to fetch user logs" });
+    }
+  });
+
+  // ============= USER MANAGEMENT =============
+  
+  // Get all users
+  app.get("/api/admin/users", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const users = await adminController.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ error: "Failed to fetch users" });
     }
   });
 }

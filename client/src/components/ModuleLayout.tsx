@@ -8,6 +8,12 @@ import { getModule } from "@/modules";
 import { useAuthStatus, useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import Settings from "@/pages/Settings";
+// Admin subpage components
+import AdminDashboard from "@/pages/admin/Dashboard";
+import ModuleManagement from "@/pages/admin/ModuleManagement";
+import RolePermissions from "@/pages/admin/RolePermissions";
+import UserOverrides from "@/pages/admin/UserOverrides";
+import SystemLogs from "@/pages/admin/SystemLogs";
 
 interface ModuleLayoutProps {
   moduleId: string;
@@ -316,16 +322,74 @@ function ModuleSubPageContent({
   subpage: string; 
   subpageInfo: any; 
 }) {
-  // For admin module, show the settings component
+  // For admin module, route to specific admin components
   if (moduleInfo.name === 'admin') {
-    return (
-      <div className="bg-card border rounded-lg p-6">
-        <h2 className="text-lg font-semibold mb-4">
-          {subpageInfo.displayName}
-        </h2>
-        <Settings />
-      </div>
-    );
+    switch (subpage) {
+      case 'dashboard':
+        return <AdminDashboard />;
+      case 'modules':
+        return <ModuleManagement />;
+      case 'permissions':
+        return <RolePermissions />;
+      case 'users':
+        return <UserOverrides />;
+      case 'logs':
+        return <SystemLogs />;
+      default:
+        // Fallback to legacy settings for unknown admin subpages
+        return (
+          <div className="bg-card border rounded-lg p-6">
+            <h2 className="text-lg font-semibold mb-4">
+              {subpageInfo.displayName}
+            </h2>
+            <Settings />
+          </div>
+        );
+    }
+  }
+  
+  // For users module, show user-specific content
+  if (moduleInfo.name === 'users') {
+    switch (subpage) {
+      case 'profile':
+        return (
+          <div className="space-y-4">
+            <div className="bg-muted/50 rounded-lg p-4">
+              <h3 className="font-medium mb-2">Profile Information</h3>
+              <p className="text-sm text-muted-foreground">Manage your personal information and settings</p>
+            </div>
+          </div>
+        );
+      case 'preferences':
+        return (
+          <div className="space-y-4">
+            <div className="bg-muted/50 rounded-lg p-4">
+              <h3 className="font-medium mb-2">User Preferences</h3>
+              <p className="text-sm text-muted-foreground">Configure your application preferences and settings</p>
+            </div>
+          </div>
+        );
+      case 'sessions':
+        return (
+          <div className="space-y-4">
+            <div className="bg-muted/50 rounded-lg p-4">
+              <h3 className="font-medium mb-2">Active Sessions</h3>
+              <p className="text-sm text-muted-foreground">View and manage your active login sessions</p>
+            </div>
+          </div>
+        );
+      default:
+        return (
+          <div className="bg-card border rounded-lg p-6">
+            <h2 className="text-lg font-semibold mb-2">
+              {subpageInfo.displayName}
+            </h2>
+            <p className="text-muted-foreground">
+              Content for {subpageInfo.displayName} will be implemented here.
+            </p>
+          </div>
+        );
+    }
   }
   
   // For other modules, show placeholder content
@@ -354,17 +418,8 @@ function ModuleSubPageContent({
         </div>
       )}
       
-      {subpage === 'profile' && (
-        <div className="space-y-4">
-          <div className="bg-muted/50 rounded-lg p-4">
-            <h3 className="font-medium mb-2">Profile Information</h3>
-            <p className="text-sm text-muted-foreground">Manage your personal information and settings</p>
-          </div>
-        </div>
-      )}
-      
       {/* Generic placeholder for other subpages */}
-      {!['dashboard', 'profile'].includes(subpage) && (
+      {subpage !== 'dashboard' && (
         <div className="bg-muted/50 rounded-lg p-4">
           <p className="text-sm text-muted-foreground">
             Content for {subpageInfo.displayName} will be implemented here.

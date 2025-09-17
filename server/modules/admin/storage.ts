@@ -209,6 +209,42 @@ export class AdminModuleStorage extends BaseModuleStorage {
     );
   }
 
+  async getAllLogs(filters?: any, limit: number = 100): Promise<AdminLog[]> {
+    let query = this.db
+      .select()
+      .from(admin_logs)
+      .orderBy(desc(admin_logs.timestamp));
+
+    // Apply filters if provided
+    if (filters) {
+      const conditions = [];
+      
+      if (filters.level) {
+        conditions.push(eq(admin_logs.level, filters.level));
+      }
+      
+      if (filters.moduleId) {
+        conditions.push(eq(admin_logs.moduleId, filters.moduleId));
+      }
+      
+      if (filters.userId) {
+        conditions.push(eq(admin_logs.userId, filters.userId));
+      }
+      
+      if (filters.action) {
+        conditions.push(eq(admin_logs.action, filters.action));
+      }
+      
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
+      }
+    }
+
+    query = query.limit(limit);
+
+    return await this.executeQuery(() => query);
+  }
+
   // ============= PERMISSION MANAGEMENT =============
 
   async getModulePermissions(moduleId: string): Promise<AdminModulePermission[]> {
@@ -426,6 +462,42 @@ export class AdminModuleStorage extends BaseModuleStorage {
       return accessibleModules;
     } catch (error) {
       console.error(`Error getting accessible modules for user ${userId}:`, error);
+      return [];
+    }
+  }
+
+  // ============= USER QUERIES =============
+  
+  /**
+   * Get all users for admin interface
+   * Note: This returns mock data - in a real implementation, this would query the users module
+   */
+  async getAllUsers(): Promise<BaseUser[]> {
+    try {
+      // In a real implementation, this would query the users module
+      // For now, return mock data to support the frontend
+      return [
+        {
+          id: "admin-user",
+          username: "admin",
+          email: "admin@example.com",
+          role: "admin",
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          id: "test-user",
+          username: "testuser",
+          email: "test@example.com", 
+          role: "user",
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      ];
+    } catch (error) {
+      console.error('Error getting all users:', error);
       return [];
     }
   }

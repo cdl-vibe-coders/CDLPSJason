@@ -381,6 +381,15 @@ export class AdminController {
 
   // ============= LOGGING =============
   
+  async getAllLogs(filters?: any, limit?: number) {
+    try {
+      return await this.storage.getAllLogs(filters, limit);
+    } catch (error) {
+      console.error('Get all logs error:', error);
+      throw new Error('Failed to fetch system logs');
+    }
+  }
+  
   async getModuleLogs(moduleId: string, limit?: number) {
     try {
       return await this.storage.getModuleLogs(moduleId, limit);
@@ -396,6 +405,17 @@ export class AdminController {
     } catch (error) {
       console.error('Get user logs error:', error);
       throw new Error('Failed to fetch user logs');
+    }
+  }
+
+  // ============= USER MANAGEMENT =============
+  
+  async getAllUsers() {
+    try {
+      return await this.storage.getAllUsers();
+    } catch (error) {
+      console.error('Get all users error:', error);
+      throw new Error('Failed to fetch users');
     }
   }
 }
