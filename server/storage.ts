@@ -29,8 +29,8 @@ export interface IStorage {
   verifyUserPassword(username: string, password: string): Promise<User | null>;
   
   // Session management with secure tokens
-  createSession(session: InsertUserSession): Promise<UserSession>;
-  getSession(token: string): Promise<UserSession | undefined>;
+  createSession(session: InsertUsersSession): Promise<UsersSession>;
+  getSession(token: string): Promise<UsersSession | undefined>;
   deleteSession(token: string): Promise<boolean>;
   cleanExpiredSessions(): Promise<number>;
   
@@ -157,10 +157,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   // ============= SESSION MANAGEMENT =============
-  async createSession(insertSession: InsertUserSession): Promise<UserSession> {
+  async createSession(insertSession: InsertUsersSession): Promise<UsersSession> {
     const hashedToken = this.hashSessionToken(insertSession.token);
     const [session] = await db
-      .insert(user_sessions)
+      .insert(users_sessions)
       .values({
         ...insertSession,
         token: hashedToken,
@@ -170,28 +170,28 @@ export class DatabaseStorage implements IStorage {
     return session;
   }
   
-  async getSession(token: string): Promise<UserSession | undefined> {
+  async getSession(token: string): Promise<UsersSession | undefined> {
     const hashedToken = this.hashSessionToken(token);
     const [session] = await db
       .select()
-      .from(user_sessions)
-      .where(eq(user_sessions.token, hashedToken));
+      .from(users_sessions)
+      .where(eq(users_sessions.token, hashedToken));
     return session || undefined;
   }
   
   async deleteSession(token: string): Promise<boolean> {
     const hashedToken = this.hashSessionToken(token);
     const [deleted] = await db
-      .delete(user_sessions)
-      .where(eq(user_sessions.token, hashedToken))
+      .delete(users_sessions)
+      .where(eq(users_sessions.token, hashedToken))
       .returning();
     return !!deleted;
   }
   
   async cleanExpiredSessions(): Promise<number> {
     const deleted = await db
-      .delete(user_sessions)
-      .where(eq(user_sessions.expiresAt, new Date()))
+      .delete(users_sessions)
+      .where(eq(users_sessions.expiresAt, new Date()))
       .returning();
     return deleted.length;
   }
