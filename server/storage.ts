@@ -35,9 +35,9 @@ export interface IStorage {
   cleanExpiredSessions(): Promise<number>;
   
   // User preferences
-  getUserPreferences(userId: string): Promise<UserPreferences | undefined>;
-  createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences>;
-  updateUserPreferences(userId: string, updates: Partial<UserPreferences>): Promise<UserPreferences | undefined>;
+  getUserPreferences(userId: string): Promise<UsersPreferences | undefined>;
+  createUserPreferences(preferences: InsertUsersPreferences): Promise<UsersPreferences>;
+  updateUserPreferences(userId: string, updates: Partial<UsersPreferences>): Promise<UsersPreferences | undefined>;
   
   // Module management
   getAllModules(): Promise<AdminModule[]>;
@@ -197,17 +197,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   // ============= USER PREFERENCES =============
-  async getUserPreferences(userId: string): Promise<UserPreferences | undefined> {
+  async getUserPreferences(userId: string): Promise<UsersPreferences | undefined> {
     const [preferences] = await db
       .select()
-      .from(user_preferences)
-      .where(eq(user_preferences.userId, userId));
+      .from(users_preferences)
+      .where(eq(users_preferences.userId, userId));
     return preferences || undefined;
   }
   
-  async createUserPreferences(insertPreferences: InsertUserPreferences): Promise<UserPreferences> {
+  async createUserPreferences(insertPreferences: InsertUsersPreferences): Promise<UsersPreferences> {
     const [preferences] = await db
-      .insert(user_preferences)
+      .insert(users_preferences)
       .values({
         ...insertPreferences,
         updatedAt: new Date()
@@ -216,11 +216,11 @@ export class DatabaseStorage implements IStorage {
     return preferences;
   }
   
-  async updateUserPreferences(userId: string, updates: Partial<UserPreferences>): Promise<UserPreferences | undefined> {
+  async updateUserPreferences(userId: string, updates: Partial<UsersPreferences>): Promise<UsersPreferences | undefined> {
     const [preferences] = await db
-      .update(user_preferences)
+      .update(users_preferences)
       .set({ ...updates, updatedAt: new Date() })
-      .where(eq(user_preferences.userId, userId))
+      .where(eq(users_preferences.userId, userId))
       .returning();
     return preferences || undefined;
   }
