@@ -1,0 +1,38 @@
+# ============= DEVELOPMENT OVERRIDES =============
+# Override settings for development environment
+
+version: '3.8'
+
+services:
+  database:
+    environment:
+      POSTGRES_DB: app_dev
+      POSTGRES_USER: dev_user
+      POSTGRES_PASSWORD: dev_password
+    ports:
+      - "5433:5432"
+
+  app-monolith:
+    environment:
+      NODE_ENV: development
+      LOG_LEVEL: debug
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run dev
+
+  admin-module:
+    environment:
+      NODE_ENV: development
+      LOG_LEVEL: debug
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+  users-module:
+    environment:
+      NODE_ENV: development
+      LOG_LEVEL: debug
+    volumes:
+      - .:/app
+      - /app/node_modules

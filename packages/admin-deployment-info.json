@@ -1,0 +1,9 @@
+{
+  "module": "admin",
+  "version": "1.0.0",
+  "buildMode": "standalone",
+  "buildTime": "2025-09-17T22:01:19Z",
+  "package": "admin-module.tar.gz",
+  "entryPoint": "admin.js",
+  "healthEndpoint": "/health"
+}
