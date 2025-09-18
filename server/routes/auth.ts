@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { storage } from "../storage";
-import { generateSessionToken, getSessionExpiration } from "../middleware/auth";
+import { generateSessionToken, getSessionExpiration, getSecureCookieOptions, clearSecureCookie } from "../middleware/auth";
 import { insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -54,14 +54,9 @@ export function registerAuthRoutes(app: Express) {
         expiresAt
       });
       
-      // Set secure session cookie
-      res.cookie('session', sessionToken, {
-        httpOnly: true,
-        secure: req.protocol === 'https' || req.get('x-forwarded-proto') === 'https',
-        sameSite: 'lax',
-        expires: expiresAt,
-        path: '/'
-      });
+      // Set secure session cookie with AWS Amplify optimizations
+      const cookieOptions = getSecureCookieOptions(req, expiresAt);
+      res.cookie('session', sessionToken, cookieOptions);
       
       // Remove password from response
       const { password: _, ...userResponse } = user;
@@ -91,13 +86,8 @@ export function registerAuthRoutes(app: Express) {
         await storage.deleteSession(sessionToken);
       }
       
-      // Clear session cookie
-      res.clearCookie('session', {
-        httpOnly: true,
-        secure: req.protocol === 'https' || req.get('x-forwarded-proto') === 'https',
-        sameSite: 'lax',
-        path: '/'
-      });
+      // Clear session cookie with AWS Amplify optimizations
+      clearSecureCookie(res, req, 'session');
       
       res.json({ success: true, message: "Logged out successfully" });
       
@@ -151,14 +141,9 @@ export function registerAuthRoutes(app: Express) {
         expiresAt
       });
       
-      // Set secure session cookie
-      res.cookie('session', sessionToken, {
-        httpOnly: true,
-        secure: req.protocol === 'https' || req.get('x-forwarded-proto') === 'https',
-        sameSite: 'lax',
-        expires: expiresAt,
-        path: '/'
-      });
+      // Set secure session cookie with AWS Amplify optimizations
+      const cookieOptions = getSecureCookieOptions(req, expiresAt);
+      res.cookie('session', sessionToken, cookieOptions);
       
       res.status(201).json({
         success: true,
@@ -209,12 +194,7 @@ export function registerAuthRoutes(app: Express) {
         if (session) {
           await storage.deleteSession(sessionToken);
         }
-        res.clearCookie('session', {
-          httpOnly: true,
-          secure: req.protocol === 'https' || req.get('x-forwarded-proto') === 'https',
-          sameSite: 'lax',
-          path: '/'
-        });
+        clearSecureCookie(res, req, 'session');
         return res.status(401).json({ error: "Session expired" });
       }
       
@@ -223,12 +203,7 @@ export function registerAuthRoutes(app: Express) {
       
       if (!user || !user.isActive) {
         await storage.deleteSession(sessionToken);
-        res.clearCookie('session', {
-          httpOnly: true,
-          secure: req.protocol === 'https' || req.get('x-forwarded-proto') === 'https',
-          sameSite: 'lax',
-          path: '/'
-        });
+        clearSecureCookie(res, req, 'session');
         return res.status(401).json({ error: "User account inactive" });
       }
       
@@ -259,12 +234,7 @@ export function registerAuthRoutes(app: Express) {
         if (session) {
           await storage.deleteSession(sessionToken);
         }
-        res.clearCookie('session', {
-          httpOnly: true,
-          secure: req.protocol === 'https' || req.get('x-forwarded-proto') === 'https',
-          sameSite: 'lax',
-          path: '/'
-        });
+        clearSecureCookie(res, req, 'session');
         return res.status(401).json({ error: "Session expired" });
       }
       
@@ -273,12 +243,7 @@ export function registerAuthRoutes(app: Express) {
       
       if (!user || !user.isActive) {
         await storage.deleteSession(sessionToken);
-        res.clearCookie('session', {
-          httpOnly: true,
-          secure: req.protocol === 'https' || req.get('x-forwarded-proto') === 'https',
-          sameSite: 'lax',
-          path: '/'
-        });
+        clearSecureCookie(res, req, 'session');
         return res.status(401).json({ error: "User account inactive" });
       }
       
@@ -320,12 +285,7 @@ export function registerAuthRoutes(app: Express) {
       // Check if session is still valid
       if (session.expiresAt < new Date()) {
         await storage.deleteSession(sessionToken);
-        res.clearCookie('session', {
-          httpOnly: true,
-          secure: req.protocol === 'https' || req.get('x-forwarded-proto') === 'https',
-          sameSite: 'lax',
-          path: '/'
-        });
+        clearSecureCookie(res, req, 'session');
         return res.status(401).json({ error: "Session expired" });
       }
       
@@ -343,14 +303,9 @@ export function registerAuthRoutes(app: Express) {
         expiresAt: newExpiresAt
       });
       
-      // Set new cookie
-      res.cookie('session', newSessionToken, {
-        httpOnly: true,
-        secure: req.protocol === 'https' || req.get('x-forwarded-proto') === 'https',
-        sameSite: 'lax',
-        expires: newExpiresAt,
-        path: '/'
-      });
+      // Set new cookie with AWS Amplify optimizations
+      const newCookieOptions = getSecureCookieOptions(req, newExpiresAt);
+      res.cookie('session', newSessionToken, newCookieOptions);
       
       res.json({ 
         success: true, 

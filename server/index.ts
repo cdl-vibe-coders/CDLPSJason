@@ -6,6 +6,9 @@ import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 
+// Trust proxy for secure cookie detection behind load balancers/proxies
+app.set('trust proxy', 1);
+
 // Configure CORS for AWS Amplify and development
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
