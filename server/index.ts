@@ -1,20 +1,77 @@
-// Add this to server/index.ts
-app.get('/health', (req: Request, res: Response) => {
-  res.status(200).json({ 
-    status: 'healthy', 
-    timestamp: new Date().toISOString(),
-    service: 'MyApp'
-  });
-});
-
-
-
 import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// Configure CORS for AWS Amplify and development
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Development origins
+    const developmentOrigins = [
+      'http://localhost:3000',
+      'http://localhost:5000',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:5000',
+    ];
+    
+    // Check for development origins
+    if (developmentOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // Check for Replit domains
+    if (origin.includes('.replit.dev') || origin.includes('.repl.co')) {
+      return callback(null, true);
+    }
+    
+    // Check for AWS Amplify domains
+    if (origin.includes('.amplifyapp.com')) {
+      return callback(null, true);
+    }
+    
+    // Check for custom domains (common patterns)
+    if (origin.match(/^https?:\/\/[a-zA-Z0-9-]+\.(com|net|org|io|app|dev)$/)) {
+      return callback(null, true);
+    }
+    
+    // For production, allow specific domains only
+    if (process.env.NODE_ENV === 'production') {
+      const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+    }
+    
+    // Allow during development
+    if (process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+    
+    // Reject otherwise
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true, // Allow cookies and authentication headers
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Cache-Control',
+    'X-File-Name'
+  ],
+  exposedHeaders: ['Set-Cookie'],
+  optionsSuccessStatus: 200 // For legacy browser support
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
