@@ -1,0 +1,61 @@
+version: 1
+applications:
+  - frontend:
+      phases:
+        preBuild:
+          commands:
+            # Use npm ci for faster, deterministic installs in CI/CD
+            - npm ci
+            # Verify Node.js and npm versions for debugging
+            - node --version
+            - npm --version
+            # Ensure proper permissions for build directory
+            - mkdir -p dist/public
+        build:
+          commands:
+            # Set NODE_ENV for production build optimizations
+            - export NODE_ENV=production
+            # Run the existing build script from package.json
+            # This builds the Vite frontend to dist/public and server to dist/
+            - npm run build
+            # Verify build output for debugging
+            - ls -la dist/
+            - ls -la dist/public/
+        postBuild:
+          commands:
+            # Clean up any unnecessary files to reduce bundle size
+            - echo "Build completed successfully"
+            # Verify final structure
+            - ls -la dist/public/
+      artifacts:
+        # Serve the frontend from the Vite build output directory
+        baseDirectory: dist/public
+        files:
+          - '**/*'
+      cache:
+        paths:
+          # Cache node_modules for faster subsequent builds
+          - node_modules/**/*
+          # Cache npm cache for faster installs
+          - ~/.npm/**/*
+          # Cache Vite build cache for faster builds
+          - client/node_modules/.vite/**/*
+    appRoot: .
+    # Environment variables configuration
+    # Note: Set these in the Amplify Console under App Settings > Environment Variables
+    customHeaders:
+      - pattern: '**/*'
+        headers:
+          - key: 'X-Frame-Options'
+            value: 'DENY'
+          - key: 'X-Content-Type-Options'
+            value: 'nosniff'
+          - key: 'Referrer-Policy'
+            value: 'strict-origin-when-cross-origin'
+          - key: 'Permissions-Policy'
+            value: 'camera=(), microphone=(), geolocation=()'
+    # Single Page Application (SPA) configuration for React Router/Wouter
+    redirects:
+      - source: '/<*>'
+        target: '/index.html'
+        status: '404-200'
