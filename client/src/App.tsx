@@ -23,7 +23,7 @@ function ModuleRouter() {
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-3xl font-bold mb-4">Welcome to Modular Backend System</h1>
             <p className="text-muted-foreground mb-6">
-              FUCK YOU AWS POS SYSTEM 
+              I did it! I created a modular backend system with dynamic module routing and a unified frontend interface. 
             </p>
           </div>
         </div>
