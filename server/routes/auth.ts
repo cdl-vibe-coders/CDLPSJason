@@ -122,13 +122,13 @@ export function registerAuthRoutes(app: Express) {
       // Check if user already exists
       const existingUser = await storage.getUserByUsername(username);
       if (existingUser) {
-        return res.status(409).json({ error: "Username already exists" });
+        return res.status(409).json({ error: "This username is already taken. Please choose a different one." });
       }
       
       if (email) {
-        const existingEmail = await storage.getUserByUsername(email);
+        const existingEmail = await storage.getUserByEmail(email);
         if (existingEmail) {
-          return res.status(409).json({ error: "Email already registered" });
+          return res.status(409).json({ error: "This email is already registered. Please use a different email or try signing in." });
         }
       }
       
@@ -168,10 +168,25 @@ export function registerAuthRoutes(app: Express) {
       
     } catch (error) {
       console.error("Registration error:", error);
+      
+      // Specific database errors
       if (error instanceof Error && error.message.includes('unique constraint')) {
-        return res.status(409).json({ error: "Username or email already exists" });
+        if (error.message.includes('username')) {
+          return res.status(409).json({ error: "This username is already taken. Please choose a different one." });
+        }
+        if (error.message.includes('email')) {
+          return res.status(409).json({ error: "This email is already registered. Please use a different email or try signing in." });
+        }
+        return res.status(409).json({ error: "Username or email already exists. Please try different values." });
       }
-      res.status(500).json({ error: "Registration failed" });
+      
+      // Database connection errors
+      if (error instanceof Error && (error.message.includes('connection') || error.message.includes('timeout'))) {
+        return res.status(503).json({ error: "Unable to connect to our servers right now. Please try again in a moment." });
+      }
+      
+      // Generic server error with more helpful message
+      res.status(500).json({ error: "Something went wrong while creating your account. Please try again or contact support if the problem continues." });
     }
   });
 
