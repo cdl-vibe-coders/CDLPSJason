@@ -486,10 +486,10 @@ export class DatabaseStorage implements IStorage {
     
     const [rolePermission] = await db
       .select()
-      .from(module_role_permissions)
+      .from(admin_module_permissions)
       .where(and(
-        eq(module_role_permissions.moduleId, moduleId),
-        eq(module_role_permissions.role, user.role)
+        eq(admin_module_permissions.moduleId, moduleId),
+        eq(admin_module_permissions.role, user.role)
       ));
       
     const hasRoleAccess = rolePermission?.canAccess || false;

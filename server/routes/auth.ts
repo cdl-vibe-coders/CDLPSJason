@@ -57,7 +57,7 @@ export function registerAuthRoutes(app: Express) {
       // Set secure session cookie
       res.cookie('session', sessionToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: req.protocol === 'https' || req.get('x-forwarded-proto') === 'https',
         sameSite: 'lax',
         expires: expiresAt,
         path: '/'
@@ -94,7 +94,7 @@ export function registerAuthRoutes(app: Express) {
       // Clear session cookie
       res.clearCookie('session', {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: req.protocol === 'https' || req.get('x-forwarded-proto') === 'https',
         sameSite: 'lax',
         path: '/'
       });
@@ -154,7 +154,7 @@ export function registerAuthRoutes(app: Express) {
       // Set secure session cookie
       res.cookie('session', sessionToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: req.protocol === 'https' || req.get('x-forwarded-proto') === 'https',
         sameSite: 'lax',
         expires: expiresAt,
         path: '/'
@@ -209,7 +209,12 @@ export function registerAuthRoutes(app: Express) {
         if (session) {
           await storage.deleteSession(sessionToken);
         }
-        res.clearCookie('session');
+        res.clearCookie('session', {
+          httpOnly: true,
+          secure: req.protocol === 'https' || req.get('x-forwarded-proto') === 'https',
+          sameSite: 'lax',
+          path: '/'
+        });
         return res.status(401).json({ error: "Session expired" });
       }
       
@@ -218,7 +223,12 @@ export function registerAuthRoutes(app: Express) {
       
       if (!user || !user.isActive) {
         await storage.deleteSession(sessionToken);
-        res.clearCookie('session');
+        res.clearCookie('session', {
+          httpOnly: true,
+          secure: req.protocol === 'https' || req.get('x-forwarded-proto') === 'https',
+          sameSite: 'lax',
+          path: '/'
+        });
         return res.status(401).json({ error: "User account inactive" });
       }
       
@@ -249,7 +259,12 @@ export function registerAuthRoutes(app: Express) {
         if (session) {
           await storage.deleteSession(sessionToken);
         }
-        res.clearCookie('session');
+        res.clearCookie('session', {
+          httpOnly: true,
+          secure: req.protocol === 'https' || req.get('x-forwarded-proto') === 'https',
+          sameSite: 'lax',
+          path: '/'
+        });
         return res.status(401).json({ error: "Session expired" });
       }
       
@@ -258,7 +273,12 @@ export function registerAuthRoutes(app: Express) {
       
       if (!user || !user.isActive) {
         await storage.deleteSession(sessionToken);
-        res.clearCookie('session');
+        res.clearCookie('session', {
+          httpOnly: true,
+          secure: req.protocol === 'https' || req.get('x-forwarded-proto') === 'https',
+          sameSite: 'lax',
+          path: '/'
+        });
         return res.status(401).json({ error: "User account inactive" });
       }
       
@@ -300,7 +320,12 @@ export function registerAuthRoutes(app: Express) {
       // Check if session is still valid
       if (session.expiresAt < new Date()) {
         await storage.deleteSession(sessionToken);
-        res.clearCookie('session');
+        res.clearCookie('session', {
+          httpOnly: true,
+          secure: req.protocol === 'https' || req.get('x-forwarded-proto') === 'https',
+          sameSite: 'lax',
+          path: '/'
+        });
         return res.status(401).json({ error: "Session expired" });
       }
       
@@ -321,7 +346,7 @@ export function registerAuthRoutes(app: Express) {
       // Set new cookie
       res.cookie('session', newSessionToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: req.protocol === 'https' || req.get('x-forwarded-proto') === 'https',
         sameSite: 'lax',
         expires: newExpiresAt,
         path: '/'
