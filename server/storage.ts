@@ -22,6 +22,7 @@ export interface IStorage {
   // User management with security
   getUser(id: string): Promise<UserWithoutPassword | undefined>;
   getUserByUsername(username: string): Promise<UserWithoutPassword | undefined>;
+  getUserByEmail(email: string): Promise<UserWithoutPassword | undefined>;
   getUserForLogin(username: string): Promise<User | undefined>; // Only for login verification
   createUser(user: InsertUser): Promise<UserWithoutPassword>;
   updateUser(id: string, updates: Partial<Omit<User, 'password'>>): Promise<UserWithoutPassword | undefined>;
@@ -105,6 +106,11 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByUsername(username: string): Promise<UserWithoutPassword | undefined> {
     const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user ? this.removePasswordField(user) : undefined;
+  }
+
+  async getUserByEmail(email: string): Promise<UserWithoutPassword | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
     return user ? this.removePasswordField(user) : undefined;
   }
   

@@ -1,0 +1,52 @@
+Perfect! After reading the entire registration route, I can see the exact problems. Here's what I'm going to change:
+
+🎯 What I Found & What I'll Fix
+Current Issues:
+Line 129: await storage.getUserByUsername(email) ❌ - This is the bug causing your 500 error! It's trying to check email uniqueness using the username method
+Line 174: "Registration failed" ❌ - Generic error that doesn't help users
+Lines 169-175: Catch block has some logic but still too vague
+Exactly What I'll Change:
+1. Fix the Email Check Bug (Line 129)
+
+// CURRENT (causing 500 error):
+const existingEmail = await storage.getUserByUsername(email);
+// CHANGE TO (simple database query):
+const [existingEmail] = await db.select().from(users).where(eq(users.email, email));
+2. Improve Error Messages (Lines 169-175)
+
+// CURRENT:
+catch (error) {
+  console.error("Registration error:", error);
+  if (error instanceof Error && error.message.includes('unique constraint')) {
+    return res.status(409).json({ error: "Username or email already exists" });
+  }
+  res.status(500).json({ error: "Registration failed" });
+}
+// CHANGE TO:
+catch (error) {
+  console.error("Registration error:", error);
+  
+  // Specific database errors
+  if (error instanceof Error && error.message.includes('unique constraint')) {
+    if (error.message.includes('username')) {
+      return res.status(409).json({ error: "This username is already taken. Please choose a different one." });
+    }
+    if (error.message.includes('email')) {
+      return res.status(409).json({ error: "This email is already registered. Please use a different email or try signing in." });
+    }
+    return res.status(409).json({ error: "Username or email already exists. Please try different values." });
+  }
+  
+  // Database connection errors
+  if (error instanceof Error && (error.message.includes('connection') || error.message.includes('timeout'))) {
+    return res.status(503).json({ error: "Unable to connect to our servers right now. Please try again in a moment." });
+  }
+  
+  // Generic server error with more helpful message
+  res.status(500).json({ error: "Something went wrong while creating your account. Please try again or contact support if the problem continues." });
+}
+That's it! Simple fixes:
+
+✅ Fix the email checking bug (root cause of 500 error)
+✅ Give users helpful, specific error messages instead of "Registration failed"
+Should I make these changes?
