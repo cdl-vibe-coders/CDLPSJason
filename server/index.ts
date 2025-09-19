@@ -93,8 +93,10 @@ app.use((req, res, next) => {
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
+  // SECURITY: Override json method for ALL requests to filter sensitive data
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
+    // Always capture response for logging
     capturedJsonResponse = bodyJson;
     return originalResJson.apply(res, [bodyJson, ...args]);
   };
@@ -104,8 +106,9 @@ app.use((req, res, next) => {
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       
-      // SECURITY: Do not log response bodies for auth endpoints to prevent session token exposure
-      if (capturedJsonResponse && !path.startsWith("/api/auth")) {
+      // SECURITY: Never log response bodies for auth endpoints to prevent session token exposure
+      const isAuthEndpoint = path.startsWith("/api/auth");
+      if (capturedJsonResponse && !isAuthEndpoint) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
 

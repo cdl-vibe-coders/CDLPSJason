@@ -1,111 +1,13 @@
 version: 1
-applications:
-  - appRoot: .
-    frontend:
-      phases:
-        preBuild:
-          commands:
-            # Environment setup and validation
-            - echo "Starting AWS Amplify optimized build process..."
-            - chmod +x scripts/amplify/*.sh
-            # Environment-specific setup (auto-detects production/staging/dev)
-            - ./scripts/amplify/environment-setup.sh
-            # Validate environment variables and configuration
-            - ./scripts/amplify/validate-env.sh
-            # Database operations removed from frontend build for security and reliability
-            # Pre-build preparation (cache clearing, dependency verification)
-            - ./scripts/amplify/prebuild.sh
-        build:
-          commands:
-            # Optimized frontend-only build for AWS Amplify static hosting
-            - ./scripts/amplify/build-frontend.sh
-        postBuild:
-          commands:
-            # Post-build validation and optimization
-            - ./scripts/amplify/postbuild.sh
-            # Advanced build optimization (compression, CDN preparation)
-            - ./scripts/amplify/optimize-build.sh
-            # Final deployment health check
-            - ./scripts/amplify/deploy-helpers.sh health-check
-            - echo "AWS Amplify build process completed successfully!"
-      artifacts:
-        # Frontend build output optimized for Amplify hosting
-        baseDirectory: dist/public
-        files:
-          - '**/*'
-      cache:
-        paths:
-          # Optimize caching for faster subsequent builds
-          - node_modules/**/*
-          - ~/.npm/**/*
-          - client/node_modules/.vite/**/*
-          - node_modules/.vite/**/*
-    # Environment variables configuration for Amplify Console
-    # Set these FRONTEND-ONLY environment variables in Amplify Console under App Settings > Environment Variables:
-    # 
-    # Frontend Variables (REQUIRED - these are exposed to the browser):
-    # - VITE_API_URL (environment-specific API endpoints for frontend to connect to backend)
-    # - NODE_ENV (auto-detected from branch - production/staging/development)
-    # 
-    # SECURITY WARNING: Backend variables must NOT be set in Amplify Console!
-    # Variables like DATABASE_URL, ANTHROPIC_API_KEY, SESSION_SECRET are for the backend server only.
-    # These should be configured in your backend hosting environment (not Amplify).
-    # Setting backend secrets in Amplify Console would expose them in the frontend build.
-    
-    # Security headers optimized for production
-    customHeaders:
-      - pattern: '**/*'
-        headers:
-          - key: 'X-Frame-Options'
-            value: 'DENY'
-          - key: 'X-Content-Type-Options'
-            value: 'nosniff'
-          - key: 'X-XSS-Protection'
-            value: '1; mode=block'
-          - key: 'Referrer-Policy'
-            value: 'strict-origin-when-cross-origin'
-          - key: 'Permissions-Policy'
-            value: 'camera=(), microphone=(), geolocation=()'
-          - key: 'Strict-Transport-Security'
-            value: 'max-age=31536000; includeSubDomains'
-      # Cache optimization for static assets
-      - pattern: '/assets/**'
-        headers:
-          - key: 'Cache-Control'
-            value: 'public, max-age=31536000, immutable'
-      - pattern: '**/*.js'
-        headers:
-          - key: 'Cache-Control'
-            value: 'public, max-age=31536000, immutable'
-      - pattern: '**/*.css'
-        headers:
-          - key: 'Cache-Control'
-            value: 'public, max-age=31536000, immutable'
-      - pattern: '**/*.png'
-        headers:
-          - key: 'Cache-Control'
-            value: 'public, max-age=31536000'
-      - pattern: '**/*.jpg'
-        headers:
-          - key: 'Cache-Control'
-            value: 'public, max-age=31536000'
-      - pattern: '**/*.svg'
-        headers:
-          - key: 'Cache-Control'
-            value: 'public, max-age=31536000'
-      - pattern: '/index.html'
-        headers:
-          - key: 'Cache-Control'
-            value: 'public, max-age=300'
-    
-    # Single Page Application (SPA) configuration for React Router/Wouter
-    redirects:
-      - source: '/<*>'
-        target: '/index.html'
-        status: '404-200'
-        
-    # Branch-specific environment configuration
-    # main/master/production -> production environment
-    # staging/stage/preprod -> staging environment  
-    # develop/dev/development -> development environment
-    # Feature branches -> development environment
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm install
+    build:
+      commands:
+        - npm run build
+  artifacts:
+    baseDirectory: dist/public
+    files:
+      - '**/*'
