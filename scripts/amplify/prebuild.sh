@@ -76,15 +76,15 @@ verify_dependencies() {
         log_success "✓ package-lock.json found - using deterministic install"
         
         # Use npm ci for faster, more reliable installs in CI/CD
-        if npm ci --only=production --silent; then
-            log_success "Production dependencies installed successfully"
+        if npm ci --silent; then
+            log_success "All dependencies installed successfully"
         else
             log_warning "npm ci failed, falling back to npm install"
-            npm install --only=production
+            npm install
         fi
     else
         log_warning "package-lock.json not found - using npm install"
-        npm install --only=production
+        npm install
     fi
     
     # Verify critical packages are installed

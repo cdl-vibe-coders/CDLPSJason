@@ -70,7 +70,7 @@ build_frontend() {
     
     # Run Vite build (frontend only)
     # This builds the React app to dist/public as configured in vite.config.ts
-    if npm run build:frontend 2>/dev/null || vite build; then
+    if npx vite build; then
         log_success "Frontend build completed successfully"
     else
         log_error "Frontend build failed"

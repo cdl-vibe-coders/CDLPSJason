@@ -1,48 +1,54 @@
 version: 1
 applications:
-  - frontend:
+  - appRoot: .
+    frontend:
       phases:
         preBuild:
           commands:
-            # Use npm ci for faster, deterministic installs in CI/CD
-            - npm ci
-            # Verify Node.js and npm versions for debugging
-            - node --version
-            - npm --version
-            # Ensure proper permissions for build directory
-            - mkdir -p dist/public
+            # Environment setup and validation
+            - echo "Starting AWS Amplify optimized build process..."
+            - chmod +x scripts/amplify/*.sh
+            # Environment-specific setup (auto-detects production/staging/dev)
+            - ./scripts/amplify/environment-setup.sh
+            # Validate environment variables and configuration
+            - ./scripts/amplify/validate-env.sh
+            # Database operations removed from frontend build for security and reliability
+            # Pre-build preparation (cache clearing, dependency verification)
+            - ./scripts/amplify/prebuild.sh
         build:
           commands:
-            # Set NODE_ENV for production build optimizations
-            - export NODE_ENV=production
-            # Run the existing build script from package.json
-            # This builds the Vite frontend to dist/public and server to dist/
-            - npm run build
-            # Verify build output for debugging
-            - ls -la dist/
-            - ls -la dist/public/
+            # Optimized frontend-only build for AWS Amplify static hosting
+            - ./scripts/amplify/build-frontend.sh
         postBuild:
           commands:
-            # Clean up any unnecessary files to reduce bundle size
-            - echo "Build completed successfully"
-            # Verify final structure
-            - ls -la dist/public/
+            # Post-build validation and optimization
+            - ./scripts/amplify/postbuild.sh
+            # Advanced build optimization (compression, CDN preparation)
+            - ./scripts/amplify/optimize-build.sh
+            # Final deployment health check
+            - ./scripts/amplify/deploy-helpers.sh health-check
+            - echo "AWS Amplify build process completed successfully!"
       artifacts:
-        # Serve the frontend from the Vite build output directory
+        # Frontend build output optimized for Amplify hosting
         baseDirectory: dist/public
         files:
           - '**/*'
       cache:
         paths:
-          # Cache node_modules for faster subsequent builds
+          # Optimize caching for faster subsequent builds
           - node_modules/**/*
-          # Cache npm cache for faster installs
           - ~/.npm/**/*
-          # Cache Vite build cache for faster builds
           - client/node_modules/.vite/**/*
-    appRoot: .
+          - node_modules/.vite/**/*
     # Environment variables configuration
-    # Note: Set these in the Amplify Console under App Settings > Environment Variables
+    # Set these in Amplify Console under App Settings > Environment Variables:
+    # - DATABASE_URL (optional - for database features)
+    # - ANTHROPIC_API_KEY (optional - for AI features)
+    # - SESSION_SECRET (recommended for security)
+    # - NODE_ENV (auto-detected from branch)
+    # - VITE_API_URL (environment-specific API endpoints)
+    
+    # Security headers optimized for production
     customHeaders:
       - pattern: '**/*'
         headers:
@@ -50,12 +56,52 @@ applications:
             value: 'DENY'
           - key: 'X-Content-Type-Options'
             value: 'nosniff'
+          - key: 'X-XSS-Protection'
+            value: '1; mode=block'
           - key: 'Referrer-Policy'
             value: 'strict-origin-when-cross-origin'
           - key: 'Permissions-Policy'
             value: 'camera=(), microphone=(), geolocation=()'
+          - key: 'Strict-Transport-Security'
+            value: 'max-age=31536000; includeSubDomains'
+      # Cache optimization for static assets
+      - pattern: '/assets/**'
+        headers:
+          - key: 'Cache-Control'
+            value: 'public, max-age=31536000, immutable'
+      - pattern: '**/*.js'
+        headers:
+          - key: 'Cache-Control'
+            value: 'public, max-age=31536000, immutable'
+      - pattern: '**/*.css'
+        headers:
+          - key: 'Cache-Control'
+            value: 'public, max-age=31536000, immutable'
+      - pattern: '**/*.png'
+        headers:
+          - key: 'Cache-Control'
+            value: 'public, max-age=31536000'
+      - pattern: '**/*.jpg'
+        headers:
+          - key: 'Cache-Control'
+            value: 'public, max-age=31536000'
+      - pattern: '**/*.svg'
+        headers:
+          - key: 'Cache-Control'
+            value: 'public, max-age=31536000'
+      - pattern: '/index.html'
+        headers:
+          - key: 'Cache-Control'
+            value: 'public, max-age=300'
+    
     # Single Page Application (SPA) configuration for React Router/Wouter
     redirects:
       - source: '/<*>'
         target: '/index.html'
         status: '404-200'
+        
+    # Branch-specific environment configuration
+    # main/master/production -> production environment
+    # staging/stage/preprod -> staging environment  
+    # develop/dev/development -> development environment
+    # Feature branches -> development environment

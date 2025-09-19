@@ -55,12 +55,7 @@ validate_database_url() {
         return 1
     fi
     
-    # Extract database information for logging (without exposing credentials)
-    local db_host=$(echo "$DATABASE_URL" | sed -n 's/.*@\([^:]*\).*/\1/p')
-    local db_name=$(echo "$DATABASE_URL" | sed -n 's/.*\/\([^?]*\).*/\1/p')
-    
-    log_info "Database host: ${db_host:-'unknown'}"
-    log_info "Database name: ${db_name:-'unknown'}"
+    # Database configuration validated (host/name details not logged for security)
     
     return 0
 }
