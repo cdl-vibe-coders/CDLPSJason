@@ -145,9 +145,12 @@ export function registerAuthRoutes(app: Express) {
       const cookieOptions = getSecureCookieOptions(req, expiresAt);
       res.cookie('session', sessionToken, cookieOptions);
       
+      // Remove password from response for security
+      const { password: _, ...userResponse } = user;
+      
       res.status(201).json({
         success: true,
-        user,
+        user: userResponse,
         sessionToken // For API clients
       });
       
@@ -207,7 +210,10 @@ export function registerAuthRoutes(app: Express) {
         return res.status(401).json({ error: "User account inactive" });
       }
       
-      res.json({ user });
+      // Remove password from response for security
+      const { password: _, ...userResponse } = user;
+      
+      res.json({ user: userResponse });
       
     } catch (error) {
       console.error("Get current user error:", error);

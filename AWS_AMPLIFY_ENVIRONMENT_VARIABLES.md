@@ -96,6 +96,61 @@ Your backend server must be configured to accept requests from your Amplify fron
 ALLOWED_ORIGINS=https://main.d1234567890.amplifyapp.com,https://yourdomain.com
 ```
 
+### Cross-Origin Authentication Requirements
+
+**CRITICAL**: The backend authentication system supports cross-origin requests through a hybrid approach:
+
+#### Authentication Methods Supported:
+1. **Same-origin requests**: Secure cookies with `sameSite: 'lax'`
+2. **Cross-origin requests**: `Authorization: Bearer` headers
+
+#### Required Backend Configuration:
+```bash
+# Production: Exact origins only (no wildcards allowed)
+NODE_ENV=production
+ALLOWED_ORIGINS=https://main.d1234567890.amplifyapp.com
+
+# Multiple origins (comma-separated, no spaces)
+ALLOWED_ORIGINS=https://main.d1234567890.amplifyapp.com,https://staging.d1234567890.amplifyapp.com
+```
+
+#### Authentication Flow for Amplify Frontend:
+1. **Login/Registration**: POST to `/api/auth/login` or `/api/auth/register`
+   - Returns JSON: `{"success": true, "user": {...}, "sessionToken": "..."}`
+   - Frontend stores `sessionToken` for subsequent requests
+
+2. **Authenticated Requests**: Use `Authorization: Bearer <sessionToken>`
+   ```javascript
+   fetch('https://your-backend-api.com/api/auth/me', {
+     headers: {
+       'Authorization': `Bearer ${sessionToken}`,
+       'Content-Type': 'application/json'
+     }
+   })
+   ```
+
+#### Security Features:
+- **Production**: Only exactly matching origins in `ALLOWED_ORIGINS` are allowed
+- **Blocked origins are logged**: Check backend logs for unauthorized access attempts
+- **Session validation**: All endpoints verify token expiration and user status
+- **Automatic cleanup**: Expired sessions are removed automatically
+
+#### Production Verification:
+```bash
+# Test cross-origin authentication flow:
+
+# 1. Register/Login from Amplify frontend
+curl -X POST https://your-backend-api.com/api/auth/login \
+  -H "Content-Type: application/json" \
+  -H "Origin: https://main.d1234567890.amplifyapp.com" \
+  -d '{"username":"user","password":"pass"}'
+
+# 2. Use returned token for authenticated requests
+curl -X GET https://your-backend-api.com/api/auth/me \
+  -H "Authorization: Bearer <sessionToken>" \
+  -H "Origin: https://main.d1234567890.amplifyapp.com"
+```
+
 ## AWS Amplify Console Setup
 
 ### Step 1: Access Environment Variables

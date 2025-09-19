@@ -19,14 +19,19 @@ declare global {
   }
 }
 
-// Extract session token from cookies
+// Extract session token from cookies or Authorization header
+// AUTHENTICATION STRATEGY: Hybrid approach for cross-origin compatibility
+// - Same-origin requests: Use secure cookies with sameSite: 'lax' 
+// - Cross-origin requests: Use Authorization: Bearer headers
+// This provides optimal security while supporting Amplify frontend → external backend architecture
 function extractSessionToken(req: Request): string | null {
-  // First check for session cookie
+  // First check for session cookie (works for same-origin requests)
   if (req.cookies?.session) {
     return req.cookies.session;
   }
   
-  // Fallback to Authorization header for API clients
+  // Fallback to Authorization header for cross-origin API clients
+  // This is the recommended approach for Amplify frontend → external backend
   const authHeader = req.headers.authorization;
   if (authHeader?.startsWith('Bearer ')) {
     return authHeader.substring(7);

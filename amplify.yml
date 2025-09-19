@@ -40,13 +40,17 @@ applications:
           - ~/.npm/**/*
           - client/node_modules/.vite/**/*
           - node_modules/.vite/**/*
-    # Environment variables configuration
-    # Set these in Amplify Console under App Settings > Environment Variables:
-    # - DATABASE_URL (optional - for database features)
-    # - ANTHROPIC_API_KEY (optional - for AI features)
-    # - SESSION_SECRET (recommended for security)
-    # - NODE_ENV (auto-detected from branch)
-    # - VITE_API_URL (environment-specific API endpoints)
+    # Environment variables configuration for Amplify Console
+    # Set these FRONTEND-ONLY environment variables in Amplify Console under App Settings > Environment Variables:
+    # 
+    # Frontend Variables (REQUIRED - these are exposed to the browser):
+    # - VITE_API_URL (environment-specific API endpoints for frontend to connect to backend)
+    # - NODE_ENV (auto-detected from branch - production/staging/development)
+    # 
+    # SECURITY WARNING: Backend variables must NOT be set in Amplify Console!
+    # Variables like DATABASE_URL, ANTHROPIC_API_KEY, SESSION_SECRET are for the backend server only.
+    # These should be configured in your backend hosting environment (not Amplify).
+    # Setting backend secrets in Amplify Console would expose them in the frontend build.
     
     # Security headers optimized for production
     customHeaders:

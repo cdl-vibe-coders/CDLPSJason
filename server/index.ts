@@ -9,16 +9,33 @@ const app = express();
 // Trust proxy for secure cookie detection behind load balancers/proxies
 app.set('trust proxy', 1);
 
-// Configure CORS for AWS Amplify and development
+// Configure CORS with secure production settings
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    // Development origins
+    // PRODUCTION: Strict security - only allow explicitly configured origins
+    if (process.env.NODE_ENV === 'production') {
+      const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) || [];
+      
+      // Only allow origins specifically configured in ALLOWED_ORIGINS environment variable
+      // SECURITY: No wildcard patterns or broad domain matching allowed in production
+      if (allowedOrigins.length > 0 && allowedOrigins.includes(origin)) {
+        console.log(`CORS allowed production origin: ${origin}`);
+        return callback(null, true);
+      }
+      
+      // Reject all other origins in production for security
+      console.warn(`SECURITY: CORS blocked unauthorized origin in production: ${origin}`);
+      console.warn(`SECURITY: Configure this origin in ALLOWED_ORIGINS environment variable if needed`);
+      return callback(new Error('Not allowed by CORS'));
+    }
+    
+    // DEVELOPMENT: Allow development platforms and local origins
     const developmentOrigins = [
       'http://localhost:3000',
-      'http://localhost:5000',
+      'http://localhost:5000', 
       'http://127.0.0.1:3000',
       'http://127.0.0.1:5000',
     ];
@@ -28,31 +45,23 @@ const corsOptions = {
       return callback(null, true);
     }
     
-    // Check for Replit domains
+    // Check for Replit domains (development/testing platforms)
     if (origin.includes('.replit.dev') || origin.includes('.repl.co')) {
       return callback(null, true);
     }
     
-    // Check for AWS Amplify domains
-    if (origin.includes('.amplifyapp.com')) {
+    // SECURITY: For development, also check ALLOWED_ORIGINS if provided
+    // This allows explicit domain configuration even in development
+    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) || [];
+    if (allowedOrigins.length > 0 && allowedOrigins.includes(origin)) {
+      console.log(`CORS allowed configured origin in development: ${origin}`);
       return callback(null, true);
     }
     
-    // Check for custom domains (common patterns)
-    if (origin.match(/^https?:\/\/[a-zA-Z0-9-]+\.(com|net|org|io|app|dev)$/)) {
-      return callback(null, true);
-    }
-    
-    // For production, allow specific domains only
-    if (process.env.NODE_ENV === 'production') {
-      const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-    }
-    
-    // Allow during development
+    // In development mode, be more permissive for testing (but not wildcard domains)
+    // SECURITY NOTE: Removed broad .amplifyapp.com pattern - use ALLOWED_ORIGINS for specific domains
     if (process.env.NODE_ENV === 'development') {
+      console.log(`CORS allowed development origin: ${origin}`);
       return callback(null, true);
     }
     
@@ -94,7 +103,9 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
+      
+      // SECURITY: Do not log response bodies for auth endpoints to prevent session token exposure
+      if (capturedJsonResponse && !path.startsWith("/api/auth")) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
 
@@ -116,8 +127,22 @@ app.use((req, res, next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
-    res.status(status).json({ message });
-    throw err;
+    // SECURITY: Log error with stack trace but do not crash server
+    console.error("Server error:", {
+      status,
+      message,
+      stack: err.stack,
+      url: _req.url,
+      method: _req.method
+    });
+
+    // Send error response if not already sent
+    if (!res.headersSent) {
+      res.status(status).json({ message });
+    }
+    
+    // CRITICAL: Do not throw err - this would crash the server process
+    // Removed: throw err;
   });
 
   // importantly only setup vite in development and after
